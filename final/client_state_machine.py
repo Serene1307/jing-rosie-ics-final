@@ -38,6 +38,8 @@ class ClientSM:
         self.grp = cs.Server().group()
         # set my own private key
         self.private_key =  random.randint(1,1000)
+        self.public_key = public_base ** self.private_key % public_clock
+        peer_public_key = ""
     def set_state(self, state):
         self.state = state
 
@@ -108,6 +110,9 @@ class ClientSM:
                         self.state = S_CHATTING
                         self.out_msg += 'Connect to ' + peer + '. Chat away!\n\n'
                         self.out_msg += '-----------------------------------\n'
+                        my_key = self.public_key
+                        mysend(self.s, json.dumps({"action":"exchange_key", "from":"[" + self.me + "]", "message":my_key}))
+                        peer_public_key = json.loads(peer_msg)["message"]
                     else:
                         self.out_msg += 'Connection unsuccessful\n'
 
@@ -149,20 +154,14 @@ class ClientSM:
 #==============================================================================
         elif self.state == S_CHATTING:
             
-            # i get my private group key from the group that i am chatting in
-            group_private_key = self.grp.get_group_private_key (self.me)
-            
             if len(my_msg) > 0:     # my stuff going out
-                # first get the group public key to encrpt my message
-                group_key = self.grp.get_group_public_key (self.me)
+                
                 # use the Diffie-Hellman key exchange formula
-                shared_key = group_key **  self.private_key % public_clock
+                shared_key = peer_public_key **  self.private_key % public_clock
                 # calculate the offset to encrypt my message
                 offset = int(shared_key) %26
                 my_msg = encrypt.generate_encrypted_msg(offset, my_msg)
-                # i announce my public key and append it to my message
-                my_key = public_base ** self.private_key % public_clock
-                my_msg = [my_msg, my_key]
+              
                 mysend(self.s, json.dumps({"action":"exchange", "from":"[" + self.me + "]", "message":my_msg}))
                 if my_msg[0] == 'bye':
                     self.disconnect()
@@ -170,12 +169,11 @@ class ClientSM:
                     self.peer = ''
             if len(peer_msg) > 0:    # peer's stuff, coming in
                 peer_msg = json.loads(peer_msg)
-                # first get the group public key
-                peer_key = peer_msg["message"] [1]
-                # then get the group encrypted message
-                encrypted_msg = peer_msg["message"] [0]
+               
+                #  get the group encrypted message
+                encrypted_msg = peer_msg["message"] 
                 # then calculate the offset according to the group public key
-                shared_key = peer_key **  group_private_key % public_clock
+                shared_key = peer_public_key **  self.private_key % public_clock
                 offset = int(shared_key) % 26
                 decrypted_msg = encrypt.decrypt_msg(offset, encrypted_msg)
                 
@@ -184,8 +182,7 @@ class ClientSM:
                 elif peer_msg["action"] == "disconnect":
                     self.state = S_LOGGEDIN
                 else:
-    
-                    
+     
                     self.out_msg += peer_msg["from"] + decrypted_msg
 
 
