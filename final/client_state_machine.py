@@ -40,6 +40,20 @@ class ClientSM:
         self.private_key =  random.randint(1,1000)
         self.public_key = public_base ** self.private_key % public_clock
         peer_public_key = ""
+        # dice 
+        self.result = ''   # store my dice result
+        self.roll_first = ''
+        self.peer_result = ''  # store peer's dice result
+        # TTT         
+        self.go_first = ''
+        self.board = TicTacToe.Board()
+        self.xo = ''
+        self.my_position = ''
+        self.peer_position = ''
+
+        
+        
+        
     def set_state(self, state):
         self.state = state
 
@@ -74,6 +88,23 @@ class ClientSM:
         mysend(self.s, msg)
         self.out_msg += 'You are disconnected from ' + self.peer + '\n'
         self.peer = ''
+
+    # connect and play game
+    def game_to(self, peer):
+        msg = json.dumps({"action":"game", "target":peer})
+        mysend(self.s, msg)
+        response = json.loads(myrecv(self.s))
+        if response["status"] == "success":
+            self.peer = peer
+            self.out_msg += 'You are connected with '+ self.peer + '\n'
+            return (True)
+        elif response["status"] == "busy":
+            self.out_msg += 'User is busy. Please try again later\n'
+        elif response["status"] == "self":
+            self.out_msg += 'Cannot game to yourself (sick)\n'
+        else:
+            self.out_msg += 'User is not online, try again later\n'
+        return(False)
 
     def proc(self, my_msg, peer_msg):
         self.out_msg = ''
@@ -134,6 +165,29 @@ class ClientSM:
                         self.out_msg += poem + '\n\n'
                     else:
                         self.out_msg += 'Sonnet ' + poem_idx + ' not found\n\n'
+                        
+                        
+            ################# invite peer to a game ##################
+                elif my_msg[0] == "g":
+                    os.system("clear")
+                    peer = my_msg[1:]
+                    peer = peer.strip()
+                    if self.game_to(peer) == True:
+                        self.state = S_GAMING_DICE
+                        self.out_msg += 'Connect to ' + peer + '. Game away!\n\n'
+                        self.out_msg += '-----------------------------------\n'
+                        self.out_msg += '''\nWelcome to Tic-Tac-Toe!\n
+                        1 | 2 | 3 
+                        ----------
+                        4 | 5 | 6 
+                        ----------
+                        7 | 8 | 9 
+                        \nLet's Start!\n\n '''
+                        self.out_msg += "Please enter D to roll a dice.\n"
+                        self.out_msg += "Whoever gets a larger number goes first!\n"
+                    else:
+                        self.out_msg += 'Connection unsuccessful\n'
+              ##########################################################
 
                 else:
                     self.out_msg += menu
@@ -147,6 +201,26 @@ class ClientSM:
                     self.out_msg += '. Chat away!\n\n'
                     self.out_msg += '------------------------------------\n'
                     self.state = S_CHATTING
+                
+            ############### peer invite me to a game ###########
+                if peer_msg["action"] == "game":
+                    os.system("clear")
+                    self.peer = peer_msg["from"]
+                    self.out_msg += 'Request from ' + self.peer + '\n'
+                    self.out_msg += 'You are connected with ' + self.peer
+                    self.out_msg += '. Game away!\n\n'
+                    self.out_msg += '------------------------------------\n'
+                    self.out_msg += '''\nWelcome to Tic-Tac-Toe!\n
+                        1 | 2 | 3 
+                        ----------
+                        4 | 5 | 6 
+                        ----------
+                        7 | 8 | 9 
+                        \nLet's Start!\n\n '''
+                    self.state = S_GAMING_DICE
+                    self.out_msg += "Please enter D to roll a dice.\n"
+                    self.out_msg += "Whoever gets a larger number goes first!\n"
+             ##################################################  
 
 #==============================================================================
 # Start chatting, 'bye' for quit
@@ -189,6 +263,160 @@ class ClientSM:
             # Display the menu again
             if self.state == S_LOGGEDIN:
                 self.out_msg += menu
+                
+#==============================================================================
+# Start GAMING, 'q' for quit
+# This is event handling instate "S_GAMING"
+#==============================================================================
+        elif self.state == S_GAMING_DICE:
+            
+         ########## roll a dice to determine who goes first########
+         
+            if len(my_msg) > 0:
+                if my_msg == "q":
+                    self.disconnect()
+                    self.state = S_LOGGEDIN
+                    self.peer = ""
+
+                if my_msg == "d" or "D":
+                    self.result = str(random.randint(1,6))
+                    self.out_msg += "You got " + self.result + ".\n"
+                    mysend(self.s, json.dumps({"action":"dice","from": self.me, "result":self.result}))
+                    if self.roll_first == False:
+                        if self.peer_result > self.result:
+                            self.out_msg += self.peer + " got " + self.peer_result + ".\n"
+                            self.out_msg += self.peer + " goes first!\n"
+                            self.state = S_GAMING_WAITING
+                            self.go_first = False
+                            self.xo = "O"
+                            os.system("clear")
+                            self.out_msg += "You are O. " + self.peer + " is X.\n"
+                            self.out_msg += "Waiting for " + self.peer + " to make a move...\n"
+                        elif self.result == self.peer_result:
+                            self.out_msg += "opps, same results. Throw again!\n"
+                            self.result = ''
+                            self.peer_result = ''
+                            self.roll_first = ''
+                        else:
+                            self.out_msg += self.peer + " got " + self.peer_result + ".\n"
+                            self.out_msg += "You go first!\n"
+                            self.state = S_GAMING_MOVING
+                            self.go_first = True 
+                            self.xo = "X" 
+                            os.system("clear")
+                            self.out_msg += "You are X. " + self.peer + " is O.\n" 
+                            self.out_msg += "Please choose 1 - 9. > \n"                                  
+                    
+                   
+            if len(peer_msg) > 0:    # peer's stuff, coming in
+                peer_msg = json.loads(peer_msg)
+                #print(peer_msg)
+                if peer_msg["action"] == "game":
+                    self.out_msg += "(" + peer_msg["from"] + " joined)\n"
+                elif peer_msg["action"] == "disconnect":
+                    self.state = S_LOGGEDIN
+                    self.out_msg += "You are disconnected from " + self.peer + "\n"
+                elif peer_msg["action"] == "dice":
+                    self.peer_result = peer_msg["result"]
+                    self.out_msg += peer_msg["from"] + " got " + self.peer_result + "\n"
+                    if self.result == "":
+                        self.roll_first = False
+                        self.out_msg += "Waiting for you to roll...\n"
+                    else:
+                        self.roll_first = True
+                        if self.result < self.peer_result:
+                            self.out_msg += "You got " + self.result + ".\n"
+                            self.out_msg += peer_msg["from"] + " goes first!\n"
+                            self.state = S_GAMING_WAITING
+                            self.go_first = False
+                            self.xo = "O"
+                            os.system("clear")
+                            self.out_msg += "You are O. " + self.peer + " is X.\n"
+                            self.out_msg += "Waiting for " + self.peer + " to make a move...\n"
+                        elif self.result == self.peer_result:
+                            self.out_msg += "opps, same results. Throw again!\n"
+                            self.result = ''
+                            self.peer_result = ''
+                            self.roll_first = ''
+                        else:
+                            self.out_msg += "You got " + self.result + ".\n"
+                            self.out_msg += "You go first!\n"
+                            self.state = S_GAMING_MOVING
+                            self.go_first = True
+                            self.xo = "X"
+                            os.system("clear")
+                            self.out_msg += "You are X. " + self.peer + " is O.\n" 
+                            self.out_msg += "Please choose 1 - 9. > \n"
+                        
+                
+            if self.state == S_LOGGEDIN:
+                self.out_msg += menu    
+                
+#============================================================================                
+        elif self.state == S_GAMING_MOVING:
+            #os.system("clear")  
+            #self.board = TicTacToe.Board()
+            #print(self.board)
+            #print(self.board.display())
+            #os.system("clear")
+            if len(my_msg) > 0:
+                if my_msg == "q":
+                    self.disconnect()
+                    self.state = S_LOGGEDIN
+                    self.peer = ""
+                else:    
+                    mysend(self.s, json.dumps({"action":"move","from": self.xo, "position": my_msg}))   
+                    if self.board.update_board(int(my_msg), self.xo) == True:
+                        os.system("clear")
+                        print(self.board.display())
+                        self.state = S_GAMING_WAITING
+                        self.out_msg += "Waiting for " + self.peer + " to move..."
+                    else:
+             
+                        self.out_msg += "Invalid input! Please enter again!\n"
+            if len(peer_msg) > 0:    # peer's stuff, coming in
+                peer_msg = json.loads(peer_msg)
+                #print(peer_msg)
+                if peer_msg["action"] == "disconnect":
+                    self.state = S_LOGGEDIN
+                    self.out_msg += "You are disconnected from " + self.peer + "\n"
+            
+            if self.state == S_LOGGEDIN:
+                self.out_msg += menu                 
+                
+        
+        elif self.state == S_GAMING_WAITING:
+            #os.system("clear")  
+            
+            if len(my_msg) > 0:
+                if my_msg == "q":
+                    self.disconnect()
+                    self.state = S_LOGGEDIN
+                    self.peer = ""
+                    
+            if len(peer_msg) > 0:    # peer's stuff, coming in
+                peer_msg = json.loads(peer_msg)
+                #print(peer_msg)
+                if peer_msg["action"] == "disconnect":
+                    self.state = S_LOGGEDIN
+                    self.out_msg += "You are disconnected from " + self.peer
+                elif peer_msg["action"] == "move":
+                    position = peer_msg["position"]
+                    xo = peer_msg["from"]
+                    if self.board.update_board(int(position), xo) == True:
+                        os.system("clear")
+                        print(self.board.display())
+                        self.state = S_GAMING_MOVING
+                        self.out_msg += "Please choose 1 - 9. > \n"
+                    else:
+                        self.out_msg += "Waiting for " + self.peer + " to move..."
+                        
+            if self.state == S_LOGGEDIN:
+                self.out_msg += menu        
+            
+            pass
+        
+        
 #==============================================================================
 # invalid state
 #==============================================================================
