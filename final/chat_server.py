@@ -180,6 +180,50 @@ class Server:
                     g = the_guys.pop()
                     to_sock = self.logged_name2sock[g]
                     mysend(to_sock, json.dumps({"action":"disconnect"}))
+                    
+                    
+#==============================================================================
+# game
+#==============================================================================                   
+            elif msg["action"] == "game":
+                to_name = msg["target"]
+                from_name = self.logged_sock2name[from_sock]
+                if to_name == from_name:
+                    msg = json.dumps({"action":"game", "status":"self"})
+                # connect to the peer
+                elif self.group.is_member(to_name):
+                    to_sock = self.logged_name2sock[to_name]
+                    self.group.connect(from_name, to_name)
+                    the_guys = self.group.list_me(from_name)
+                    msg = json.dumps({"action":"game", "status":"success"})
+                    for g in the_guys[1:]:
+                        to_sock = self.logged_name2sock[g]
+                        mysend(to_sock, json.dumps({"action":"game", "status":"request", "from":from_name}))
+                else:
+                    msg = json.dumps({"action":"game", "status":"no-user"})
+                mysend(from_sock, msg)
+                 
+                    
+                
+            elif msg["action"] == "dice":
+               from_name = self.logged_sock2name[from_sock]
+               the_guys = self.group.list_me(from_name)[1]
+               result = msg["result"]
+               to_sock = self.logged_name2sock[the_guys]
+               mysend(to_sock, json.dumps({"action":"dice","from":msg["from"],"result": result}))
+               
+                
+                
+            elif msg["action"] == "move":
+                from_name = self.logged_sock2name[from_sock]
+                the_guys = self.group.list_me(from_name)[1]
+                position = msg["position"]
+                to_sock = self.logged_name2sock[the_guys]
+                mysend(to_sock, json.dumps({"action":"move","from":msg["from"],"position": position}))
+                
+                
+                    
+                
 #==============================================================================
 #                 the "from" guy really, really has had enough
 #==============================================================================
