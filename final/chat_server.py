@@ -14,7 +14,12 @@ import json
 import pickle as pkl
 from chat_utils import *
 import chat_group as grp
+import random
 
+import primes 
+
+public_base = primes.genPrime()
+public_clock =primes.random_primitive_root(public_base)
 
 class Server:
     def __init__(self):
@@ -22,7 +27,7 @@ class Server:
         self.logged_name2sock = {} #dictionary mapping username to socket
         self.logged_sock2name = {} # dict mapping socket to user name
         self.all_sockets = []
-        self.group = grp.Group()
+        self.group = grp.Group(public_base, public_clock)
         #start server
         self.server=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind(SERVER)
@@ -138,11 +143,9 @@ class Server:
 # =============================================================================
             elif msg["action"] == "exchange_key":
                 from_name = self.logged_sock2name[from_sock]
-                the_guys = self.group.list_me(from_name)
-                for g in the_guys[1:]:
-                    to_sock = self.logged_name2sock[g]
-                    self.indices[g].add_msg_and_index(said2)
-                    mysend(to_sock, json.dumps({"action":"exchange_key", "from":msg["from"], "message":msg["message"]}))       
+                group_public_key = self.group.get_group_public_key(from_name)
+                group_private_key = self.group.get_group_private_key(from_name)
+                mysend(to_sock, json.dumps({"action":"exchange_key", "group_key":[group_public_key, group_private_key, public_base, public_clock]}))       
 #==============================================================================
 #                 listing available peers
 #==============================================================================
@@ -190,6 +193,50 @@ class Server:
                     g = the_guys.pop()
                     to_sock = self.logged_name2sock[g]
                     mysend(to_sock, json.dumps({"action":"disconnect"}))
+                    
+                    
+#==============================================================================
+# game
+#==============================================================================                   
+            elif msg["action"] == "game":
+                to_name = msg["target"]
+                from_name = self.logged_sock2name[from_sock]
+                if to_name == from_name:
+                    msg = json.dumps({"action":"game", "status":"self"})
+                # connect to the peer
+                elif self.group.is_member(to_name):
+                    to_sock = self.logged_name2sock[to_name]
+                    self.group.connect(from_name, to_name)
+                    the_guys = self.group.list_me(from_name)
+                    msg = json.dumps({"action":"game", "status":"success"})
+                    for g in the_guys[1:]:
+                        to_sock = self.logged_name2sock[g]
+                        mysend(to_sock, json.dumps({"action":"game", "status":"request", "from":from_name}))
+                else:
+                    msg = json.dumps({"action":"game", "status":"no-user"})
+                mysend(from_sock, msg)
+                 
+                    
+                
+            elif msg["action"] == "dice":
+               from_name = self.logged_sock2name[from_sock]
+               the_guys = self.group.list_me(from_name)[1]
+               result = msg["result"]
+               to_sock = self.logged_name2sock[the_guys]
+               mysend(to_sock, json.dumps({"action":"dice","from":msg["from"],"result": result}))
+               
+                
+                
+            elif msg["action"] == "move":
+                from_name = self.logged_sock2name[from_sock]
+                the_guys = self.group.list_me(from_name)[1]
+                position = msg["position"]
+                to_sock = self.logged_name2sock[the_guys]
+                mysend(to_sock, json.dumps({"action":"move","from":msg["from"],"position": position}))
+                
+                
+                    
+                
 #==============================================================================
 #                 the "from" guy really, really has had enough
 #==============================================================================

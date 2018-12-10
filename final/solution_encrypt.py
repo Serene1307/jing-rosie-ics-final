@@ -1,20 +1,22 @@
 import random
 random.seed(0)
 
-# implement this
-def read_file(file_name):
-    msg_list = [""]
-    # -------- start of your code -------- #
-    pass
-
-    # solution:
-    try:
-        msg_list = open(file_name, "r").readlines()
-    except FileNotFoundError:
-        print("%s not found!" % file_name)
-    # -------- end of your code --------#
-
-    return msg_list
+# =============================================================================
+# # implement this
+# def read_file(file_name):
+#     msg_list = [""]
+#     # -------- start of your code -------- #
+#     pass
+# 
+#     # solution:
+#     try:
+#         msg_list = open(file_name, "r").readlines()
+#     except FileNotFoundError:
+#         print("%s not found!" % file_name)
+#     # -------- end of your code --------#
+# 
+#     return msg_list
+# =============================================================================
 """
 The following function encodes a character according to a given offset
 DO NOT EDIT THIS FUNCTION
@@ -72,13 +74,10 @@ def decrypt_a_letter(c, offset):
             return chr( ord(c) - offset + 26 )
     else:
         return c
-    # -------- end of your code --------#
+   
     return c
 
-# =============================================================================
-# print(decrypt_a_letter('a', 1))
-# print(decrypt_a_letter('a', 25))
-# =============================================================================
+# 
 
 def decrypt_msg(offset, msg):
     """
@@ -87,7 +86,7 @@ def decrypt_msg(offset, msg):
     first approach.
     You are encouraged to write any additional function(s) you may need
     """
-    # -------- start of your code -------- #
+   
     pass
 
     # solution:
@@ -97,26 +96,5 @@ def decrypt_msg(offset, msg):
     return decrypted_msg
 
     
-    # -------- end of your code --------#
-  
+ 
 
-# =============================================================================
-# print(decrypt_msg('am', ['c', 'am']))
-# print(decrypt_msg('bn', ['ck', 'am', 'hello']))
-# =============================================================================
-
-
-
-# Main code - DO NOT EDIT THIS
-if __name__ == "__main__":
-
-    file_name = "messagelist.txt"
-    msg_list = read_file(file_name)
-
-    encrypted_msg = generate_encrypted_msg(msg_list)
-    print("Your encrypted message is:\n" + encrypted_msg)
-
-    decrypted_msg, offset = decrypt_msg(encrypted_msg, msg_list)
-    print("The decrypted message is:\n" + decrypted_msg)
-
-    print("The substitution offset =", offset)

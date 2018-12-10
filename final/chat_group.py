@@ -26,12 +26,14 @@ import random
 
 class Group:
 
-    def __init__(self):
+    def __init__(self, public_base, public_clock):
         self.members = {}
         self.chat_grps = {}
         self.grp_ever = 0
         self.group_public_key = {}
         self.group_private_key = {}
+        self.public_base = public_base
+        self.public_clock = public_clock
     def join(self, name):
         self.members[name] = S_ALONE
         return
@@ -74,8 +76,8 @@ class Group:
             self.members[peer] = S_TALKING
             # set new group private key
             group_private_key = random.randint(1,1000)
-            self.group_private_key[group_key] = private_key 
-            self.group_public_key[group_key] = public_base ** group_private_key % public_clock
+            self.group_private_key[group_key] = group_private_key 
+            self.group_public_key[group_key] = (self.public_base ** group_private_key) % self.public_clock
            
         print(self.list_me(me))
         return
