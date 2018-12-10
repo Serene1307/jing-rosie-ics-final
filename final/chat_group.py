@@ -6,8 +6,7 @@ Created on Sun Apr  5 09:58:31 2015
 """
 S_ALONE = 0
 S_TALKING = 1
-public_base =5
-public_clock = 23
+
 import random
 
 #==============================================================================
