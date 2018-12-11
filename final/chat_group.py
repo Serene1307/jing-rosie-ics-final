@@ -24,11 +24,12 @@ import random
 #==============================================================================
 
 class Group:
-
+    #We take public_base and public_clock as inputs to construct group public key later
     def __init__(self, public_base, public_clock):
         self.members = {}
         self.chat_grps = {}
         self.grp_ever = 0
+        # we create new dictionaries to store keys
         self.group_public_key = {}
         self.group_private_key = {}
         self.public_base = public_base
@@ -80,6 +81,7 @@ class Group:
            
         print(self.list_me(me))
         return
+    #we create two new functions to retrieve keys
     def get_group_public_key(self, me):
         in_group, group_key = self.find_group(me)
         return self.group_public_key[group_key]

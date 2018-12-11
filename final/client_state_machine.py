@@ -6,20 +6,16 @@ Created on Sun Apr  5 00:00:32 2015
 from chat_utils import *
 import json
 import solution_encrypt as encrypt
-#<<<<<<< HEAD
 import random
 import TicTacToe
-
-import TicTacToe
-
 import os
 
 
-#My secure messaging works in a way that when I am connected with a peer, I will get my group public keys immediately 
-#so as to encrypt my message based on my own private key, and meanwhile, send my public key along with my message
-#to other group members so that they could decrypt my message; When I receive a message from the group chat, I first
-#retrieve the peer public key which comes with the message (unique to the sender) so that I could use this key along 
-#with my group private key to decrypt the peer's message.
+'''Our secure messaging works in a way that when "I" am connected with a peer, "I" will get my group public keys immediately 
+so as to encrypt my message based on my own private key, and meanwhile, send my public key along with my message
+to other group members so that they could decrypt my message; When "I" receive a message from the group chat, "I" first
+retrieve the peer public key which comes with the message (unique to the sender) so that I could use this key along 
+with my group private key to decrypt the peer's message.'''
 class ClientSM:
     def __init__(self, s):
         self.state = S_OFFLINE
