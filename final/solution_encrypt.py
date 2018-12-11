@@ -1,22 +1,5 @@
 import random
-#random.seed(0)
 
-# =============================================================================
-# # implement this
-# def read_file(file_name):
-#     msg_list = [""]
-#     # -------- start of your code -------- #
-#     pass
-# 
-#     # solution:
-#     try:
-#         msg_list = open(file_name, "r").readlines()
-#     except FileNotFoundError:
-#         print("%s not found!" % file_name)
-#     # -------- end of your code --------#
-# 
-#     return msg_list
-# =============================================================================
 """
 The following function encodes a character according to a given offset
 DO NOT EDIT THIS FUNCTION

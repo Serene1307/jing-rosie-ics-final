@@ -22,7 +22,7 @@ S_OFFLINE   = 0
 S_CONNECTED = 1
 S_LOGGEDIN  = 2
 S_CHATTING  = 3
-# game state
+# states for game
 S_GAMING_DICE = 4
 S_GAMING_WAITING = 5
 S_GAMING_MOVING = 6

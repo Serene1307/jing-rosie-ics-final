@@ -9,9 +9,11 @@ import os
 
 
 class Board():
+    # initiate the board
     def __init__(self):
         self.cells = [" ", " ", " ", " ", " ", " ", " ", " ", " ", " "]
-
+        
+    #display the board
     def display(self):
         a = " %s | %s | %s \n " % (self.cells[1], self.cells[2], self.cells[3])
         a += "---------- \n"
@@ -20,21 +22,22 @@ class Board():
         a += " %s | %s | %s \n " % (self.cells[7], self.cells[8], self.cells[9])
         return a
         
-     
+    # update board 
     def update_board(self, cell_no, player):
         if cell_no in [1,2,3,4,5,6,7,8,9] :
+            # if cell not taken
             if self.cells[cell_no] == " ":
                 self.cells[cell_no] = player
                 return True
+            # if the cell is already taken
             else:
-                #print("Invalid input! Please enter again!")
                 return False
+        # if the number entered is not within 1-9
         else:
-            #print("Invalid input! Please enter again!")
             return False
             
             
-            
+    # determine whether player is winner       
     def is_winner(self, player):
         if self.cells[1] == player and self.cells[2] == player and self.cells[3] == player:
             return True
@@ -59,7 +62,8 @@ class Board():
         
         if self.cells[3] == player and self.cells[5] == player and self.cells[7] == player:
             return True
-        
+    
+    #determine whether it is a tie game    
     def is_tie(self):
         used_cells = 0
         for cell in self.cells:
@@ -69,27 +73,6 @@ class Board():
             return True
         else:
             return False
-                
         
-    def reset(self):
-        self.cells = [" ", " ", " ", " ", " ", " ", " ", " ", " ", " "]
-        
-
-def print_header():
-    return '''\nWelcome to Tic-Tac-Toe!\n"
-             1 | 2 | 3 
-            ------------
-             4 | 5 | 6 
-            ------------
-             7 | 8 | 9 
-            \nLet's Start!\n '''   
-        
-def refresh_screen():
-        
-        os.system("clear")
-#        print_header()
-#        print("\n")
-    
-        Board().display()
-
+   
 

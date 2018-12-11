@@ -197,8 +197,9 @@ class Server:
                     
                     
 #==============================================================================
-# game
+#               game
 #==============================================================================                   
+            # connect peers to play game
             elif msg["action"] == "game":
                 to_name = msg["target"]
                 from_name = self.logged_sock2name[from_sock]
@@ -218,7 +219,7 @@ class Server:
                 mysend(from_sock, msg)
                  
                     
-                
+            # handle dice result exchange    
             elif msg["action"] == "dice":
                from_name = self.logged_sock2name[from_sock]
                the_guys = self.group.list_me(from_name)[1]
@@ -227,7 +228,7 @@ class Server:
                mysend(to_sock, json.dumps({"action":"dice","from":msg["from"],"result": result}))
                
                 
-                
+            # handle move position exchange    
             elif msg["action"] == "move":
                 from_name = self.logged_sock2name[from_sock]
                 the_guys = self.group.list_me(from_name)[1]
@@ -236,7 +237,7 @@ class Server:
                 to_sock = self.logged_name2sock[the_guys]
                 mysend(to_sock, json.dumps({"action":"move","from":msg["from"],"position": position, "status": status}))
                 
-                
+            # handle exchange of info of whether want to play again    
             elif msg["action"] == "game_again":
                 from_name = self.logged_sock2name[from_sock]
                 the_guys = self.group.list_me(from_name)[1]
@@ -244,8 +245,6 @@ class Server:
                 to_sock = self.logged_name2sock[the_guys]
                 mysend(to_sock, json.dumps({"action":"game_again","from":msg["from"], "status": status}))
                 
-        
-                    
                 
 #==============================================================================
 #                 the "from" guy really, really has had enough
