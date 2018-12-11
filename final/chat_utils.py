@@ -15,7 +15,8 @@ menu = "\n++++ Choose one of the following commands\n \
         c _peer_: to connect to the _peer_ and chat\n \
         ? _term_: to search your chat logs where _term_ appears\n \
         p _#_: to get number <#> sonnet\n \
-        q: to leave the chat system\n\n"
+        q: to leave the chat system\n \
+        g _peer_: to connect to _peer_ and play TicTacToe!\n\n"
 
 S_OFFLINE   = 0
 S_CONNECTED = 1
@@ -25,6 +26,7 @@ S_CHATTING  = 3
 S_GAMING_DICE = 4
 S_GAMING_WAITING = 5
 S_GAMING_MOVING = 6
+S_GAMING_AGAIN = 7
 
 SIZE_SPEC = 5
 

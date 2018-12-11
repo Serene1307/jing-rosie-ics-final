@@ -6,8 +6,14 @@ Created on Sun Apr  5 00:00:32 2015
 from chat_utils import *
 import json
 import solution_encrypt as encrypt
+#<<<<<<< HEAD
 import random
 import TicTacToe
+
+import TicTacToe
+
+import os
+
 
 #My secure messaging works in a way that when I am connected with a peer, I will get my group public keys immediately 
 #so as to encrypt my message based on my own private key, and meanwhile, send my public key along with my message
@@ -127,16 +133,17 @@ class ClientSM:
                     peer = my_msg[1:]
                     peer = peer.strip()
                     if self.connect_to(peer) == True:
-                        self.state = S_CHATTING
                         self.out_msg += 'Connect to ' + peer + '. Chat away!\n\n'
                         self.out_msg += '-----------------------------------\n'
                         # when we are connected, we immediately request the base, clock and my group public/private key.
                         mysend(self.s, json.dumps({"action":"exchange_key"}))
-                        self.group_public_key = json.loads(myrecv(self.s))["keys"][0]
-                        self.group_private_key = json.loads(myrecv(self.s))["keys"][1]
-                        self.public_base = json.loads(myrecv(self.s))["keys"][2]
-                        self.public_clock = json.loads(myrecv(self.s))["keys"][3]
-                        self.public_key = (self.public_base ** self.private_key) % public_clock
+                        received = json.loads(myrecv(self.s))["keys"]
+                        self.group_public_key = received [0]
+                        self.group_private_key = received [1]
+                        self.public_base = received [2]
+                        self.public_clock = received [3]
+                        self.public_key = (self.public_base ** self.private_key) % self.public_clock
+                        self.state = S_CHATTING
                     else:
                         self.out_msg += 'Connection unsuccessful\n'
 
@@ -195,12 +202,13 @@ class ClientSM:
                     self.out_msg += '------------------------------------\n'
                     # when we are connected, we immediately request the group public key.
                     mysend(self.s, json.dumps({"action":"exchange_key"}))
-                    self.group_public_key = json.loads(myrecv(self.s))["keys"][0]
-                    self.group_private_key = json.loads(myrecv(self.s))["keys"][1]
-                    self.public_base = json.loads(myrecv(self.s))["keys"][2]
-                    self.public_clock = json.loads(myrecv(self.s))["keys"][3]
-                    self.public_key = (public_base ** self.private_key) % public_clock
-                    self.state = S_CHATTING
+                    received = json.loads(myrecv(self.s))["keys"]
+                    self.group_public_key = received [0]
+                    self.group_private_key = received [1]
+                    self.public_base = received [2]
+                    self.public_clock = received [3]
+                    self.public_key = (self.public_base ** self.private_key) % self.public_clock
+                    self.state = S_CHATTING                    
                     
                 
             ############### peer invite me to a game ###########
@@ -233,35 +241,35 @@ class ClientSM:
         elif self.state == S_CHATTING:
             
             if len(my_msg) > 0:     # my stuff going out
-               
                 # use the Diffie-Hellman key exchange formula
-                self.shared_key = (self.group_public_key **  self.private_key) % public_clock
+                self.shared_key = (self.group_public_key **  self.private_key) % self.public_clock
                 # calculate the offset to encrypt my message
-                self.offset = int(shared_key) %26
-                my_msg = encrypt.generate_encrypted_msg(offset, my_msg)
+                self.offset = int(self.shared_key) %26
+                my_encrypted_msg = encrypt.generate_encrypted_msg(self.offset, my_msg)
                  # when I am sending out my message, I will send out my public key as well, so group members can decrypt my message
-                mysend(self.s, json.dumps({"action":"exchange", "from":"[" + self.me + "]", "message":[my_msg,self.public_key]}))
-                if my_msg[0] == 'bye':
+                mysend(self.s, json.dumps({"action":"exchange", "from":"[" + self.me + "]", "message":my_encrypted_msg,"from_name_public_key":self.public_key}))
+                if my_msg == 'bye':
                     self.disconnect()
                     self.state = S_LOGGEDIN
                     self.peer = ''
             if len(peer_msg) > 0:    
                 peer_msg = json.loads(peer_msg)
-                # first we retrieve the peer's public key
-                self.peer_public_key = peer_msg["message"] [1]
+              
                 if peer_msg["action"] == "connect":
                     self.out_msg += "(" + peer_msg["from"] + " joined)\n"
                 elif peer_msg["action"] == "disconnect":
                     self.state = S_LOGGEDIN
                 else:
+                    # first we retrieve the peer's public key
+                    self.peer_public_key = peer_msg["from_name_public_key"] 
                     #  get the peer's encrypted message based on my group own private key
-                    self.shared_key = (self.peer_public_key **  self.group_private_key) % public_clock
+                    self.shared_key = (self.peer_public_key **  self.group_private_key) % self.public_clock
                     # calculate the offset to encrypt my message
-                    self.offset = int(shared_key) %26
-                    encrypted_msg = peer_msg["message"][0]
+                    self.offset = int(self.shared_key) %26
+                    encrypted_msg = peer_msg["message"]
                     # then calculate the offset according to the group public key
                     
-                    decrypted_msg = encrypt.decrypt_msg(offset, encrypted_msg)
+                    decrypted_msg = encrypt.decrypt_msg(self.offset, encrypted_msg)
                     self.out_msg += peer_msg["from"] + decrypted_msg
 
 
@@ -281,13 +289,17 @@ class ClientSM:
                 if my_msg == "q":
                     self.disconnect()
                     self.state = S_LOGGEDIN
-                    self.peer = ""
+                    self.peer = ''
 
-                if my_msg == "d" or "D":
+                elif my_msg == "d" or "D":
                     self.result = str(random.randint(1,6))
                     self.out_msg += "You got " + self.result + ".\n"
                     mysend(self.s, json.dumps({"action":"dice","from": self.me, "result":self.result}))
-                    if self.roll_first == False:
+                    if self.peer_result == '':
+                        self.roll_first = True
+                        self.out_msg += "Waiting for " + self.peer + " to roll...\n"
+                    else:
+                        self.roll_first = False               
                         if self.peer_result > self.result:
                             self.out_msg += self.peer + " got " + self.peer_result + ".\n"
                             self.out_msg += self.peer + " goes first!\n"
@@ -296,6 +308,13 @@ class ClientSM:
                             self.xo = "O"
                             os.system("clear")
                             self.out_msg += "You are O. " + self.peer + " is X.\n"
+                            self.out_msg += '''  
+                            1 | 2 | 3 
+                            ----------
+                            4 | 5 | 6 
+                            ----------
+                            7 | 8 | 9 
+                            \n'''
                             self.out_msg += "Waiting for " + self.peer + " to make a move...\n"
                         elif self.result == self.peer_result:
                             self.out_msg += "opps, same results. Throw again!\n"
@@ -310,6 +329,13 @@ class ClientSM:
                             self.xo = "X" 
                             os.system("clear")
                             self.out_msg += "You are X. " + self.peer + " is O.\n" 
+                            self.out_msg += '''  
+                            1 | 2 | 3 
+                            ----------
+                            4 | 5 | 6 
+                            ----------
+                            7 | 8 | 9 
+                            \n'''
                             self.out_msg += "Please choose 1 - 9. > \n"                                  
                     
                    
@@ -337,6 +363,13 @@ class ClientSM:
                             self.xo = "O"
                             os.system("clear")
                             self.out_msg += "You are O. " + self.peer + " is X.\n"
+                            self.out_msg += '''  
+                            1 | 2 | 3 
+                            ----------
+                            4 | 5 | 6 
+                            ----------
+                            7 | 8 | 9 
+                            \n'''
                             self.out_msg += "Waiting for " + self.peer + " to make a move...\n"
                         elif self.result == self.peer_result:
                             self.out_msg += "opps, same results. Throw again!\n"
@@ -350,7 +383,14 @@ class ClientSM:
                             self.go_first = True
                             self.xo = "X"
                             os.system("clear")
-                            self.out_msg += "You are X. " + self.peer + " is O.\n" 
+                            self.out_msg += "You are X. " + self.peer + " is O.\n"
+                            self.out_msg += '''  
+                            1 | 2 | 3 
+                            ----------
+                            4 | 5 | 6 
+                            ----------
+                            7 | 8 | 9 
+                            \n'''
                             self.out_msg += "Please choose 1 - 9. > \n"
                         
                 
@@ -370,15 +410,30 @@ class ClientSM:
                     self.state = S_LOGGEDIN
                     self.peer = ""
                 else:    
-                    mysend(self.s, json.dumps({"action":"move","from": self.xo, "position": my_msg}))   
+                    #mysend(self.s, json.dumps({"action":"move","from": self.xo, "position": my_msg}))   
                     if self.board.update_board(int(my_msg), self.xo) == True:
                         os.system("clear")
                         print(self.board.display())
-                        self.state = S_GAMING_WAITING
-                        self.out_msg += "Waiting for " + self.peer + " to move..."
+                        if self.board.is_winner(self.xo) == True:
+                            self.out_msg += "You win!\n"
+                            mysend(self.s,json.dumps({"action":"move","from": self.xo, "position": my_msg, "status":"win"}))
+                            self.state = S_GAMING_AGAIN
+                            self.out_msg += "Play again?(Y/N)\n"
+                        elif self.board.is_tie() == True:
+                            self.out_msg += "It's a tie!\n"
+                            mysend(self.s,json.dumps({"action":"move","from": self.xo, "position": my_msg, "status":"tie"}))
+                            self.state = S_GAMING_AGAIN
+                            self.out_msg += "Play again?(Y/N)\n"
+                        else:
+                            mysend(self.s,json.dumps({"action":"move","from": self.xo, "position": my_msg, "status":""}))
+                            self.state = S_GAMING_WAITING
+                            self.out_msg += "Waiting for " + self.peer + " to move..."
                     else:
-             
                         self.out_msg += "Invalid input! Please enter again!\n"
+                        
+                
+                    
+                    
             if len(peer_msg) > 0:    # peer's stuff, coming in
                 peer_msg = json.loads(peer_msg)
                 #print(peer_msg)
@@ -389,10 +444,9 @@ class ClientSM:
             if self.state == S_LOGGEDIN:
                 self.out_msg += menu                 
                 
-        
+################################################################################        
         elif self.state == S_GAMING_WAITING:
-            #os.system("clear")  
-            
+            #os.system("clear")              
             if len(my_msg) > 0:
                 if my_msg == "q":
                     self.disconnect()
@@ -411,17 +465,77 @@ class ClientSM:
                     if self.board.update_board(int(position), xo) == True:
                         os.system("clear")
                         print(self.board.display())
-                        self.state = S_GAMING_MOVING
-                        self.out_msg += "Please choose 1 - 9. > \n"
+                    
+                        if peer_msg["status"] == "win":
+                            self.out_msg += "You lose!\n"
+                            self.out_msg += "Play again?(Y/N)\n"
+                            self.state = S_GAMING_AGAIN
+                        elif peer_msg["status"] == "tie":
+                            self.out_msg += "It's a tie!\n"
+                            self.out_msg += "Play again?(Y/N)\n"
+                            self.state = S_GAMING_AGAIN  
+                        else:
+                            self.state = S_GAMING_MOVING
+                            self.out_msg += "Please choose 1 - 9. > \n"
                     else:
                         self.out_msg += "Waiting for " + self.peer + " to move..."
+                
                         
             if self.state == S_LOGGEDIN:
                 self.out_msg += menu        
             
+            
+ ############################################################################       
+        elif self.state == S_GAMING_AGAIN:
             pass
-        
-        
+#            if len(my_msg) > 0:
+#                if my_msg == "n" or "N":
+#                    mysend(self.s, json.dumps({"action":"game_again","from": self.me, "status": "no"}))
+#                    self.out_msg += "You are disconnected from " + self.peer
+#                    self.state = S_LOGGEDIN
+#                    self.peer = ''
+#                elif my_msg == "y" or "Y":
+#                    mysend(self.s, json.dumps({"action":"game_again","from": self.me, "status": "yes"})) 
+#                    
+#                    os.system("clear")
+#                    self.out_msg += '''\nWelcome to Tic-Tac-Toe!\n
+#                        1 | 2 | 3 
+#                        ----------
+#                        4 | 5 | 6 
+#                        ----------
+#                        7 | 8 | 9 
+#                        \nLet's Start!\n\n'''
+#                    self.state = S_GAMING_DICE    
+#                    self.out_msg += "Please enter D to roll a dice.\n"
+#                    self.out_msg += "Whoever gets a larger number goes first!\n"
+#                    
+#            if len(peer_msg) > 0:    
+#                peer_msg = json.loads(peer_msg)
+#                print(peer_msg)
+#                
+#                if peer_msg["action"] == "game_again":
+#                    if peer_msg["status"] == "no":
+#                        self.state = S_LOGGEDIN
+#                        self.out_msg += "You are disconnected from " + self.peer
+#                    elif peer_msg["status"] == "yes":
+#                        
+#                        os.system("clear")
+#                        self.out_msg += '''\nWelcome to Tic-Tac-Toe!\n
+#                            1 | 2 | 3 
+#                            ----------
+#                            4 | 5 | 6 
+#                            ----------
+#                            7 | 8 | 9 
+#                            \nLet's Start!\n\n '''
+#                        self.state = S_GAMING_DICE
+#                        self.out_msg += "Please enter D to roll a dice.\n"
+#                        self.out_msg += "Whoever gets a larger number goes first!\n"
+#                    
+#            if self.state == S_LOGGEDIN:
+#                self.out_msg += menu         
+#                    
+                    
+            
 #==============================================================================
 # invalid state
 #==============================================================================
