@@ -28,7 +28,7 @@ class Server:
         self.logged_sock2name = {} # dict mapping socket to user name
         self.all_sockets = []
         self.group = grp.Group(public_base, public_clock)
-        #self.game_group = grp.GameGroup()
+        
         #start server
         self.server=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind(SERVER)
@@ -232,10 +232,19 @@ class Server:
                 from_name = self.logged_sock2name[from_sock]
                 the_guys = self.group.list_me(from_name)[1]
                 position = msg["position"]
+                status = msg["status"]
                 to_sock = self.logged_name2sock[the_guys]
-                mysend(to_sock, json.dumps({"action":"move","from":msg["from"],"position": position}))
+                mysend(to_sock, json.dumps({"action":"move","from":msg["from"],"position": position, "status": status}))
                 
                 
+            elif msg["action"] == "game_again":
+                from_name = self.logged_sock2name[from_sock]
+                the_guys = self.group.list_me(from_name)[1]
+                status = msg["status"]
+                to_sock = self.logged_name2sock[the_guys]
+                mysend(to_sock, json.dumps({"action":"game_again","from":msg["from"], "status": status}))
+                
+        
                     
                 
 #==============================================================================
