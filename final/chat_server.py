@@ -145,7 +145,7 @@ class Server:
                 from_name = self.logged_sock2name[from_sock]
                 group_public_key = self.group.get_group_public_key(from_name)
                 group_private_key = self.group.get_group_private_key(from_name)
-                mysend(to_sock, json.dumps({"action":"exchange_key", "group_key":[group_public_key, group_private_key, public_base, public_clock]}))       
+                mysend(to_sock, json.dumps({"action":"exchange_key", "keys":[group_public_key, group_private_key, public_base, public_clock]}))       
 #==============================================================================
 #                 listing available peers
 #==============================================================================

@@ -6,6 +6,8 @@ Created on Sun Apr  5 00:00:32 2015
 from chat_utils import *
 import json
 import solution_encrypt as encrypt
+import random
+import TicTacToe
 
 #My secure messaging works in a way that when I am connected with a peer, I will get my group public keys immediately 
 #so as to encrypt my message based on my own private key, and meanwhile, send my public key along with my message
@@ -134,7 +136,7 @@ class ClientSM:
                         self.group_private_key = json.loads(myrecv(self.s))["keys"][1]
                         self.public_base = json.loads(myrecv(self.s))["keys"][2]
                         self.public_clock = json.loads(myrecv(self.s))["keys"][3]
-                        self.public_key = (public_base ** self.private_key) % public_clock
+                        self.public_key = (self.public_base ** self.private_key) % public_clock
                     else:
                         self.out_msg += 'Connection unsuccessful\n'
 
