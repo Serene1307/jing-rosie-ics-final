@@ -128,11 +128,13 @@ class Group:
                         my_list.append(member)
         return my_list
 
-if __name__ == "__main__":
-    g = Group()
-    g.join('a')
-    g.join('b')
-    print(g.list_all('a'))
-    g.list_all2('a')
-    g.connect('a', 'b')
-    print(g.list_all('b'))
+
+
+#if __name__ == "__main__":
+#    g = Group()
+#    g.join('a')
+#    g.join('b')
+#    print(g.list_all('a'))
+#    g.list_all2('a')
+#    g.connect('a', 'b')
+#    print(g.list_all('b'))

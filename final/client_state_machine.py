@@ -8,6 +8,7 @@ import json
 import solution_encrypt as encrypt
 import TicTacToe
 import random
+import os
 
 #My secure messaging works in a way that when I am connected with a peer, I will get my group public keys immediately 
 #so as to encrypt my message based on my own private key, and meanwhile, send my public key along with my message
@@ -281,13 +282,17 @@ class ClientSM:
                 if my_msg == "q":
                     self.disconnect()
                     self.state = S_LOGGEDIN
-                    self.peer = ""
+                    self.peer = ''
 
-                if my_msg == "d" or "D":
+                elif my_msg == "d" or "D":
                     self.result = str(random.randint(1,6))
                     self.out_msg += "You got " + self.result + ".\n"
                     mysend(self.s, json.dumps({"action":"dice","from": self.me, "result":self.result}))
-                    if self.roll_first == False:
+                    if self.peer_result == '':
+                        self.roll_first = True
+                        self.out_msg += "Waiting for " + self.peer + " to roll...\n"
+                    else:
+                        self.roll_first = False               
                         if self.peer_result > self.result:
                             self.out_msg += self.peer + " got " + self.peer_result + ".\n"
                             self.out_msg += self.peer + " goes first!\n"
@@ -296,6 +301,13 @@ class ClientSM:
                             self.xo = "O"
                             os.system("clear")
                             self.out_msg += "You are O. " + self.peer + " is X.\n"
+                            self.out_msg += '''  
+                            1 | 2 | 3 
+                            ----------
+                            4 | 5 | 6 
+                            ----------
+                            7 | 8 | 9 
+                            \n'''
                             self.out_msg += "Waiting for " + self.peer + " to make a move...\n"
                         elif self.result == self.peer_result:
                             self.out_msg += "opps, same results. Throw again!\n"
@@ -310,6 +322,13 @@ class ClientSM:
                             self.xo = "X" 
                             os.system("clear")
                             self.out_msg += "You are X. " + self.peer + " is O.\n" 
+                            self.out_msg += '''  
+                            1 | 2 | 3 
+                            ----------
+                            4 | 5 | 6 
+                            ----------
+                            7 | 8 | 9 
+                            \n'''
                             self.out_msg += "Please choose 1 - 9. > \n"                                  
                     
                    
@@ -337,6 +356,13 @@ class ClientSM:
                             self.xo = "O"
                             os.system("clear")
                             self.out_msg += "You are O. " + self.peer + " is X.\n"
+                            self.out_msg += '''  
+                            1 | 2 | 3 
+                            ----------
+                            4 | 5 | 6 
+                            ----------
+                            7 | 8 | 9 
+                            \n'''
                             self.out_msg += "Waiting for " + self.peer + " to make a move...\n"
                         elif self.result == self.peer_result:
                             self.out_msg += "opps, same results. Throw again!\n"
@@ -350,7 +376,14 @@ class ClientSM:
                             self.go_first = True
                             self.xo = "X"
                             os.system("clear")
-                            self.out_msg += "You are X. " + self.peer + " is O.\n" 
+                            self.out_msg += "You are X. " + self.peer + " is O.\n"
+                            self.out_msg += '''  
+                            1 | 2 | 3 
+                            ----------
+                            4 | 5 | 6 
+                            ----------
+                            7 | 8 | 9 
+                            \n'''
                             self.out_msg += "Please choose 1 - 9. > \n"
                         
                 
